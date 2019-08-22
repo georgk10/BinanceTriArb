@@ -27,7 +27,7 @@ This Bot is written and tested in Python3.6. It depends on requests, websockets 
 3. Make sure to have at least 10 USDT in your binance account
 4. Create an api key and write down both (the public and secret) keys
 5. Put your api keys inside the config.json file
-6. (Optionally) adjust the maximum trade amount 
+6. (Optionally) adjust the maximum trade amount (in USDT)
 7. (Optionally) adjust the trading currencies in config.json - Note that a currencies must be available to trade on **both** the USDT **and** BTC markets, in order to be traded.
 8. Start bnArb.py 
 
