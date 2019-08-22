@@ -1,0 +1,6 @@
+{
+"secret":"insert secret key here", 
+"public":"insert public key here", 
+"max_amount": 50,
+"currencies":["ETH", "LTC", "BNB", "NEO", "BCC", "QTUM", "OMG", "ZRX", "IOTA", "LINK", "EOS", "ETC", "ZEC", "DASH", "TRX", "XRP", "ENJ", "VEN", "NULS", "XMR", "BAT", "ADA", "XLM", "WAVES", "GTO", "ICX", "IOST", "NANO", "ZIL", "ONT", "TUSD", "THETA", "NPXS", "HOT", "VET", "PAX", "USDC", "MITH", "BCHABC", "BCHSV", "BTT", "ONG", "FET", "CELR", "MATIC", "ATOM", "TFUEL", "ONE", "FTM", "ALGO", "ERD", "DOGE", "DUSK", "ANKR", "WIN", "COS", "COCOS"]
+}
