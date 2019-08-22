@@ -9,25 +9,12 @@ This bot is meant to trade **triangular arbitrage** on **binance**. Using the bi
 
 
 
-# How it works
+## How it works
 
 The script tracks the prices of each altcoin on the USDT **and**  the BTC market. If it detects an difference, greater than the cumulated trading fee's, it buys the altcoin on the cheaper market and sells ob the more expensive. Below the both possibilities are visualized:
 
-1. Buy on USDT Market, Sell on BTC Market
-```mermaid
-graph LR
-A((USDT)) --> B((Altcoin))
-B --> C((BTC))
-C --> A((USDT))
-```
+![Triangular Arbitrage](https://github.com/georgk10/BinanceTriArb/blob/master/TriArb.PNG)
 
-2. Buy on BTC Market, Sell on USDT Market
-```mermaid
-graph LR
-A((USDT)) --> B((BTC))
-B --> C((Altcoin))
-C --> A((USDT))
-```
 ## Dependencies
 
 This Bot is written and tested in Python3.6. It depends on requests, websockets & python-binance modules. You can install these dependencies by naviagting to the project folder and typing: 
