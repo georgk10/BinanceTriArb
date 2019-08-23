@@ -102,7 +102,7 @@ class BnArber:
                     trade_amount = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
                     order_success = self.order("BTCUSDT", "BUY", trade_amount)
                     if order_success:
-                        trade_amount = self.floor(trade_amount*0.999, self.precision[cur+"BTC"])
+                        trade_amount = self.floor((trade_amount*0.999)/self.get_ask(cur+"BTC")[0], self.precision[cur+"BTC"])
                         order_success = self.order(cur+"BTC", "BUY", trade_amount)
                         if not order_success:
                             self.sell_all()
