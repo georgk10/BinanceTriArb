@@ -17,7 +17,7 @@ The script tracks the prices of each altcoin on the USDT **and**  the BTC market
 
 ## Dependencies
 
-This Bot is written and tested in Python3.6. It depends on requests, websockets & python-binance modules. You can install these dependencies by navigating to the project folder and typing: 
+This Bot is written and tested in Python3.6. It depends on websockets & python-binance modules. You can install these dependencies by navigating to the project folder and typing: 
 >pip install -r requirements.txt 
 
 ## Setup

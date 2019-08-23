@@ -1,4 +1,4 @@
-import websockets, asyncio, json, datetime, requests, time, uuid
+import websockets, asyncio, json, time
 from threading import Thread
 from binance.client import Client
 
@@ -35,7 +35,7 @@ class BnArber:
         """
         print("Arbitrator started...")
         print("Operating Markets:", ', '.join(self.curs))
-        heartbeat = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+        print("Balance:", self.get_balance("USDT"), "USDT")
         for cur in self.curs:
             self.url += cur.lower()+"usdt@depth5/"+cur.lower()+"btc@depth5/"
         async with websockets.connect(self.url) as websocket:
@@ -44,24 +44,18 @@ class BnArber:
                 if not self.timeout:
                     self.timeout = True
                     Thread(target=self.get_rates).start()
-                if heartbeat < datetime.datetime.utcnow() - datetime.timedelta(hours=1):
-                    print("Balance:", self.get_balance("USDT"), "USDT")
-                    heartbeat = datetime.datetime.utcnow()
                     
-
     def handle_data(self, message):
         """
         Takes websocket data and converts it to an internal orderbook (dictionary).
         """
         message = json.loads(message)
         market_id = message["stream"].split("@")[0]
-        asks = {}
-        for ask in message["data"]["asks"]:
-            asks[float(ask[0])] = float(ask[1])
-        bids = {}
-        for bid in message["data"]["bids"]:
-            bids[float(bid[0])] = float(bid[1])
-        self.data[market_id.upper()] = {"ask":asks, "bid":bids}
+        asks = [(float(a[0]), float(a[1])) for a in message["data"]["asks"]]
+        ask = min(asks, key = lambda t: t[0])
+        bids = [(float(a[0]), float(a[1])) for a in message["data"]["bids"]]
+        bid = max(bids, key = lambda t: t[0])
+        self.data[market_id.upper()] = {"ask":ask, "bid":bid}
                     
     def get_rates(self):
         """
@@ -69,16 +63,14 @@ class BnArber:
         """
         fee = 1-(0.999**3) # Cumulated trading fee for 3 trades
         for cur in self.curs:
-            
             try:
                 r = (1/self.get_ask(cur+"USDT")[0]*self.get_bid(cur+"BTC")[0]*self.get_bid("BTCUSDT")[0])-1 
                 am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
                 am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
                 am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                am4 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"USDT")[0])
-                euro_available = min(am1, am2, am3, am4)
+                euro_available = min(am1, am2, am3)
                 if r > fee and euro_available > self.min_amount:
-                    euro_available = min([euro_available, self.max_amount])
+                    euro_available = min(euro_available, self.max_amount)
                     trade_amount = self.floor(euro_available/self.get_ask(cur+"USDT")[0], self.precision[cur+"USDT"])
                     order_success = self.order(cur+"USDT", "BUY", trade_amount)
                     if order_success:
@@ -104,10 +96,9 @@ class BnArber:
                 am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
                 am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
                 am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                am4 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"USDT")[0])
-                euro_available = min(am1, am2, am3, am4)
+                euro_available = min(am1, am2, am3)
                 if r > fee and euro_available > self.min_amount:
-                    euro_available = min([euro_available, self.max_amount])
+                    euro_available = min(euro_available, self.max_amount)
                     trade_amount = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
                     order_success = self.order("BTCUSDT", "BUY", trade_amount)
                     if order_success:
@@ -161,7 +152,6 @@ class BnArber:
         Create an order.
         """
         try:
-            print(market, side, amount)
             if side.lower() == "buy":
                 re = self.client.create_order(symbol=market, side=Client.SIDE_BUY, type=Client.ORDER_TYPE_MARKET,quantity=str(amount))
             elif side.lower() == "sell":
@@ -175,23 +165,18 @@ class BnArber:
         """
         Get price & size of best bid.
         """
-        price = max(self.data[market]["bid"].keys())
-        size = self.data[market]["bid"][price]
-        return (price, size)
+        return self.data[market]["bid"]
 
     def get_ask(self, market):
         """
         Get price & size of best ask.
         """
-        price = min(self.data[market]["ask"].keys())
-        size = self.data[market]["ask"][price]
-        return (price, size)
+        return self.data[market]["ask"]
 
     def floor(self, nbr, precision):
         """
         Cut any number at 'precision' decimals.
         """
-        nbr = float(nbr)
         if precision == 0:
             return int(nbr)
         else:
