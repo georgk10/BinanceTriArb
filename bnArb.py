@@ -1,5 +1,4 @@
 import websockets, asyncio, json, datetime, requests, time, uuid
-from decimal import Decimal
 from threading import Thread
 from binance.client import Client
 
@@ -50,14 +49,14 @@ class BnArber:
         market_id = message["stream"].split("@")[0]
         asks = {}
         for ask in message["data"]["asks"]:
-            asks[Decimal(ask[0])] = Decimal(ask[1])
+            asks[float(ask[0])] = float(ask[1])
         bids = {}
         for bid in message["data"]["bids"]:
-            bids[Decimal(bid[0])] = Decimal(bid[1])
+            bids[float(bid[0])] = float(bid[1])
         self.data[market_id.upper()] = {"ask":asks, "bid":bids}
                     
     def get_rates(self, websocket):
-        fee = Decimal(1-(0.999**3))
+        fee = 1-(0.999**3)
         for cur in self.curs:
             
             try:
@@ -79,7 +78,7 @@ class BnArber:
                             time.sleep(10)
                             print("Balance:", self.get_balance("USDT"), "USDT")
                             continue
-                        trade_amount = self.floor((trade_amount*0.999)*float(self.get_bid(cur+"BTC")[0]), self.precision["BTCUSDT"])
+                        trade_amount = self.floor((trade_amount*0.999)*self.get_bid(cur+"BTC")[0], self.precision["BTCUSDT"])
                         order_success = self.order("BTCUSDT", "SELL", trade_amount)
                         if not order_success:
                             self.sell_all()
@@ -135,7 +134,7 @@ class BnArber:
             for cur in self.curs + ["BTC"]:
                 time.sleep(5)
                 amount = self.floor(self.get_balance(cur), self.precision[cur+"USDT"])
-                if amount*float(self.get_bid(cur+"USDT")[0]) > self.min_amount:
+                if amount*self.get_bid(cur+"USDT")[0] > self.min_amount:
                     self.order(cur+"USDT", "SELL", amount)
         except:
             pass
