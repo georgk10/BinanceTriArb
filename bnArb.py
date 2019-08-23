@@ -10,11 +10,13 @@ class BnArber:
         - USDT -> ALTCOIN -> BTC -> USDT
     """
     def __init__(self, curs, public, secret, max_amount):
+        """
+        Inits an Instance of the Trader Class. Also get trading precision of each market.
+        """
         self.url = "wss://stream.binance.com:9443/stream?streams=btcusdt@depth5/"
         self.curs = curs
         self.data = {}
         self.timeout = False
-        self.money = 0
         self.min_amount = 5
         self.max_amount = max_amount
         self.client = Client(public, secret)
@@ -28,6 +30,9 @@ class BnArber:
                         self.precision[i["symbol"]] = -1*int(f["minQty"].count("0"))
                         
     async def run(self):
+        """
+        Connects to Websocket & Triggers functions.
+        """
         print("Arbitrator started...")
         print("Operating Markets:", ', '.join(self.curs))
         heartbeat = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
@@ -38,13 +43,16 @@ class BnArber:
                 self.handle_data(message)
                 if not self.timeout:
                     self.timeout = True
-                    Thread(target=self.get_rates, args=(websocket,)).start()
+                    Thread(target=self.get_rates).start()
                 if heartbeat < datetime.datetime.utcnow() - datetime.timedelta(hours=1):
                     print("Balance:", self.get_balance("USDT"), "USDT")
                     heartbeat = datetime.datetime.utcnow()
                     
 
     def handle_data(self, message):
+        """
+        Takes websocket data and converts it to an internal orderbook (dictionary).
+        """
         message = json.loads(message)
         market_id = message["stream"].split("@")[0]
         asks = {}
@@ -55,12 +63,15 @@ class BnArber:
             bids[float(bid[0])] = float(bid[1])
         self.data[market_id.upper()] = {"ask":asks, "bid":bids}
                     
-    def get_rates(self, websocket):
-        fee = 1-(0.999**3)
+    def get_rates(self):
+        """
+        Main trading function. Calculates profit margins, trade size & executes trades for each currency.
+        """
+        fee = 1-(0.999**3) # Cumulated trading fee for 3 trades
         for cur in self.curs:
             
             try:
-                r = (1/self.get_ask(cur+"USDT")[0]*self.get_bid(cur+"BTC")[0]*self.get_bid("BTCUSDT")[0])-1
+                r = (1/self.get_ask(cur+"USDT")[0]*self.get_bid(cur+"BTC")[0]*self.get_bid("BTCUSDT")[0])-1 
                 am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
                 am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
                 am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
@@ -89,7 +100,7 @@ class BnArber:
                     else:
                         pass    
                 
-                r = (1/self.get_ask("BTCUSDT")[0]/self.get_ask(cur+"BTC")[0]*self.get_bid(cur+"USDT")[0])-1
+                r = (1/self.get_ask("BTCUSDT")[0]/self.get_ask(cur+"BTC")[0]*self.get_bid(cur+"USDT")[0])-1 
                 am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
                 am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
                 am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
@@ -123,6 +134,9 @@ class BnArber:
         self.timeout = False
 
     def get_balance(self, cur):
+        """
+        Return available balance for given currency.
+        """
         try:
             re = self.client.get_asset_balance(asset=cur)
             return re["free"] 
@@ -130,6 +144,9 @@ class BnArber:
             return 0
 
     def sell_all(self):
+        """
+        Sell all currencies other than USDT.
+        """
         try:
             for cur in self.curs + ["BTC"]:
                 time.sleep(5)
@@ -140,6 +157,9 @@ class BnArber:
             pass
 
     def order(self, market, side, amount):
+        """
+        Create an order.
+        """
         try:
             print(market, side, amount)
             if side.lower() == "buy":
@@ -152,16 +172,25 @@ class BnArber:
             return False
     
     def get_bid(self, market):
+        """
+        Get price & size of best bid.
+        """
         price = max(self.data[market]["bid"].keys())
         size = self.data[market]["bid"][price]
         return (price, size)
 
     def get_ask(self, market):
+        """
+        Get price & size of best ask.
+        """
         price = min(self.data[market]["ask"].keys())
         size = self.data[market]["ask"][price]
         return (price, size)
 
     def floor(self, nbr, precision):
+        """
+        Cut any number at 'precision' decimals.
+        """
         nbr = float(nbr)
         if precision == 0:
             return int(nbr)
