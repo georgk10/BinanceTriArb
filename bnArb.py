@@ -13,7 +13,7 @@ class BnArber:
         """
         Inits an Instance of the Trader Class. Also get trading precision of each market.
         """
-        self.url = "wss://stream.binance.com:9443/stream?streams=btcusdt@depth5/"
+        self.url = "wss://stream.binance.com:9443/stream?streams=btcusdt@depth5"
         self.curs = curs
         self.data = {}
         self.timeout = False
@@ -37,7 +37,7 @@ class BnArber:
         print("Operating Markets:", ', '.join(self.curs))
         print("Balance:", self.get_balance("USDT"), "USDT")
         for cur in self.curs:
-            self.url += cur.lower()+"usdt@depth5/"+cur.lower()+"btc@depth5/"
+            self.url += "/"+cur.lower()+"usdt@depth5/"+cur.lower()+"btc@depth5"
         async with websockets.connect(self.url) as websocket:
             async for message in websocket:
                 self.handle_data(message)
