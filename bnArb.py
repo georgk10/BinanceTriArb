@@ -17,7 +17,7 @@ class BnArber:
         self.curs = curs
         self.data = {}
         self.timeout = False
-        self.min_amount = 5
+        self.min_amount = 11
         self.max_amount = max_amount
         self.client = Client(public, secret)
         self.precision = {}
@@ -61,9 +61,13 @@ class BnArber:
         """
         Main trading function. Calculates profit margins, trade size & executes trades for each currency.
         """
-        fee = 1-(0.999**3) # Cumulated trading fee for 3 trades
         for cur in self.curs:
             try:
+                print(cur)
+                am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
+                am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
+                am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
+                euro_available = min(am1, am2, am3)
                 x = self.floor(euro_available/self.get_ask(cur+"USDT")[0], self.precision[cur+"USDT"])
                 y = self.floor(x*0.999, self.precision[cur+"BTC"])
                 z = self.floor((y*0.999)*self.get_bid(cur+"BTC")[0], self.precision["BTCUSDT"])
@@ -71,11 +75,7 @@ class BnArber:
                 b = self.get_bid("BTCUSDT")[0]*z
                 arbitrage = a/x*x/y*y/b
                 profit = b-a
-                am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
-                am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                euro_available = min(am1, am2, am3)
-                if arbitrage < 0.99 or arbitrage > 1.01 and profit > 0:
+                if arbitrage < 0.99 and profit > 0 and euro_available > self.min_amount:
                     euro_available = min(euro_available, self.max_amount)
                     trade_amount = x
                     order_success = self.order(cur+"USDT", "BUY", trade_amount)
@@ -100,6 +100,10 @@ class BnArber:
                     else:
                         pass    
                 
+                am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
+                am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
+                am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
+                euro_available = min(am1, am2, am3)
                 x = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
                 y = self.floor((x*0.999)/self.get_ask(cur+"BTC")[0], self.precision[cur+"BTC"])
                 z = self.floor(y*0.999, self.precision[cur+"USDT"])
@@ -107,11 +111,7 @@ class BnArber:
                 b = self.get_bid(cur+"USDT")[0]*z
                 arbitrage = a/x*x/y*y/b
                 profit = b-a
-                am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
-                am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                euro_available = min(am1, am2, am3)
-                if arbitrage < 0.99 or arbitrage > 1.01 and profit > 0:
+                if arbitrage < 0.99 and profit > 0 and euro_available > self.min_amount:
                     euro_available = min(euro_available, self.max_amount)
                     trade_amount = x
                     order_success = self.order("BTCUSDT", "BUY", trade_amount)
