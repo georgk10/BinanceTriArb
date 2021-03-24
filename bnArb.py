@@ -1,4 +1,4 @@
-import websockets, asyncio, json, time
+import websockets, asyncio, json, time, random
 from threading import Thread
 from binance.client import Client
 
@@ -64,10 +64,7 @@ class BnArber:
         for cur in self.curs:
             try:
                 print(cur)
-                am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
-                am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                euro_available = min(am1, am2, am3)
+                euro_available = random.randint(self.min_amount, self.max_amount)
                 x = self.floor(euro_available/self.get_ask(cur+"USDT")[0], self.precision[cur+"USDT"])
                 y = self.floor(x*0.999, self.precision[cur+"BTC"])
                 z = self.floor((y*0.999)*self.get_bid(cur+"BTC")[0], self.precision["BTCUSDT"])
@@ -100,10 +97,7 @@ class BnArber:
                     else:
                         pass    
                 
-                am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
-                am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                euro_available = min(am1, am2, am3)
+                euro_available = random.randint(self.min_amount, self.max_amount)
                 x = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
                 y = self.floor((x*0.999)/self.get_ask(cur+"BTC")[0], self.precision[cur+"BTC"])
                 z = self.floor(y*0.999, self.precision[cur+"USDT"])
@@ -207,5 +201,3 @@ with open("config.json", "r") as file:
  
 bn = BnArber(data["currencies"], data["public"], data["secret"], data["max_amount"])
 asyncio.get_event_loop().run_until_complete(bn.run())
-
-
