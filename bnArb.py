@@ -1,4 +1,4 @@
-import websockets, asyncio, json, time
+import websockets, asyncio, json, time, random
 from threading import Thread
 from binance.client import Client
 
@@ -17,7 +17,7 @@ class BnArber:
         self.curs = curs
         self.data = {}
         self.timeout = False
-        self.min_amount = 5
+        self.min_amount = 11
         self.max_amount = max_amount
         self.client = Client(public, secret)
         self.precision = {}
@@ -61,63 +61,72 @@ class BnArber:
         """
         Main trading function. Calculates profit margins, trade size & executes trades for each currency.
         """
-        fee = 1-(0.999**3) # Cumulated trading fee for 3 trades
         for cur in self.curs:
             try:
-                r = (1/self.get_ask(cur+"USDT")[0]*self.get_bid(cur+"BTC")[0]*self.get_bid("BTCUSDT")[0])-1 
-                am1 = (self.get_ask(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                am2 = (self.get_bid(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid("BTCUSDT")[0]
-                am3 = (self.get_bid("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                euro_available = min(am1, am2, am3)
-                if r > fee and euro_available > self.min_amount:
+                print(cur)
+                euro_available = random.randint(self.min_amount, self.max_amount)
+                x = self.floor(euro_available/self.get_ask(cur+"USDT")[0], self.precision[cur+"USDT"])
+                y = self.floor(x*0.999, self.precision[cur+"BTC"])
+                z = self.floor((y*0.999)*self.get_bid(cur+"BTC")[0], self.precision["BTCUSDT"])
+                a = self.get_ask(cur+"USDT")[0]*x
+                b = self.get_bid("BTCUSDT")[0]*z
+                arbitrage = a/x*x/y*y/b
+                profit = b-a
+                if arbitrage < 0.99 and profit > 0 and euro_available > self.min_amount:
                     euro_available = min(euro_available, self.max_amount)
-                    trade_amount = self.floor(euro_available/self.get_ask(cur+"USDT")[0], self.precision[cur+"USDT"])
+                    trade_amount = x
                     order_success = self.order(cur+"USDT", "BUY", trade_amount)
                     if order_success:
-                        trade_amount = self.floor(trade_amount*0.999, self.precision[cur+"BTC"])
+                        trade_amount = y
                         order_success = self.order(cur+"BTC", "SELL", trade_amount)
                         if not order_success:
                             self.sell_all()
                             time.sleep(10)
                             print("Balance:", self.get_balance("USDT"), "USDT")
                             continue
-                        trade_amount = self.floor((trade_amount*0.999)*self.get_bid(cur+"BTC")[0], self.precision["BTCUSDT"])
+                        trade_amount = z
                         order_success = self.order("BTCUSDT", "SELL", trade_amount)
                         if not order_success:
                             self.sell_all()
                             time.sleep(10)
                             print("Balance:", self.get_balance("USDT"), "USDT")
                             continue
+                        print(a, "USDT, BUY", x, cur+"USDT, SELL", y, cur+"BTC, SELL", b, "BTCUSDT - ARBITRAGE:", arbitrage, "PROFIT:", profit, "USDT")
                         print("Balance:", self.get_balance("USDT"), "USDT")
+                        time.sleep(30)
                     else:
                         pass    
                 
-                r = (1/self.get_ask("BTCUSDT")[0]/self.get_ask(cur+"BTC")[0]*self.get_bid(cur+"USDT")[0])-1 
-                am1 = (self.get_ask("BTCUSDT")[1]*self.get_bid("BTCUSDT")[0])
-                am2 = (self.get_ask(cur+"BTC")[1]*self.get_bid(cur+"BTC")[0])*self.get_bid(cur+"USDT")[0]
-                am3 = (self.get_bid(cur+"USDT")[1]*self.get_bid(cur+"USDT")[0])
-                euro_available = min(am1, am2, am3)
-                if r > fee and euro_available > self.min_amount:
+                euro_available = random.randint(self.min_amount, self.max_amount)
+                x = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
+                y = self.floor((x*0.999)/self.get_ask(cur+"BTC")[0], self.precision[cur+"BTC"])
+                z = self.floor(y*0.999, self.precision[cur+"USDT"])
+                a = self.get_ask("BTCUSDT")[0]*x
+                b = self.get_bid(cur+"USDT")[0]*z
+                arbitrage = a/x*x/y*y/b
+                profit = b-a
+                if arbitrage < 0.99 and profit > 0 and euro_available > self.min_amount:
                     euro_available = min(euro_available, self.max_amount)
-                    trade_amount = self.floor(euro_available/self.get_ask("BTCUSDT")[0], self.precision["BTCUSDT"])
+                    trade_amount = x
                     order_success = self.order("BTCUSDT", "BUY", trade_amount)
                     if order_success:
-                        trade_amount = self.floor((trade_amount*0.999)/self.get_ask(cur+"BTC")[0], self.precision[cur+"BTC"])
+                        trade_amount = y
                         order_success = self.order(cur+"BTC", "BUY", trade_amount)
                         if not order_success:
                             self.sell_all()
                             print("Balance:", self.get_balance("USDT"), "USDT")
                             time.sleep(10)
                             continue
-                        trade_amount = self.floor(trade_amount*0.999, self.precision[cur+"USDT"])
+                        trade_amount = z
                         order_success = self.order(cur+"USDT", "SELL", trade_amount)
                         if not order_success:
                             self.sell_all()
                             print("Balance:", self.get_balance("USDT"), "USDT")
                             time.sleep(10)
                             continue
+                        print(a, "USDT, BUY", x, "BTCUSDT, BUY", y, cur+"BTC, SELL", b, cur+"USDT - ARBITRAGE:", arbitrage, "PROFIT:", profit, "USDT")
                         print("Balance:", self.get_balance("USDT"), "USDT")
-                        print(self.old_data)
+                        time.sleep(30)
                     else:
                         pass
             except KeyError:
@@ -154,8 +163,10 @@ class BnArber:
         try:
             if side.lower() == "buy":
                 re = self.client.create_order(symbol=market, side=Client.SIDE_BUY, type=Client.ORDER_TYPE_MARKET,quantity=str(amount))
+                print("BUY", amount, market)
             elif side.lower() == "sell":
                 re = self.client.create_order(symbol=market, side=Client.SIDE_SELL, type=Client.ORDER_TYPE_MARKET,quantity=str(amount))
+                print("SELL", amount, market)
             if re["status"] == "FILLED":
                 return True
         except:
@@ -190,5 +201,3 @@ with open("config.json", "r") as file:
  
 bn = BnArber(data["currencies"], data["public"], data["secret"], data["max_amount"])
 asyncio.get_event_loop().run_until_complete(bn.run())
-
-
