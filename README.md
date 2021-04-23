@@ -34,5 +34,3 @@ This Bot is written and tested in Python3.6. It depends on websockets & python-b
 
 ##
 
-I would love to know if you could manage to make some profits out of this. For any questions, inquiries or suggestions, contact me at
-georgk98@gmail.com
