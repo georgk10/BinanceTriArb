@@ -5,4 +5,4 @@
 python_binance == 0.7.3
 
 # bnArb.py: 1
-websockets == 8.0.2
+websockets == 9.1
